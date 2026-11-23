@@ -59,6 +59,19 @@ All metrics above use the same 273 matched drawings and corrected labels.
 - MedGemma heavily favored score 4, even after calibration.
 - GPT-5 achieved higher balanced accuracy than MedGemma.
 
+## Experimental Verification
+
+- All 473 calibration and evaluation images were confirmed to come
+  from the authorized NHATS test directory.
+- Calibration and evaluation share zero patients.
+- All 273 MedGemma predictions match their baseline records.
+- Saved L0 probabilities were independently reproduced.
+- Real GPU inference reproduced the saved probabilities exactly
+  for one image.
+- The complete evaluation workflow passed a real-GPU smoke test.
+- The full automated test suite passed 131 tests, with 4 skipped
+  due to optional dependencies or environment requirements.
+
 ## Limitations
 
 - Results are exploratory, not a fully untouched test benchmark.
