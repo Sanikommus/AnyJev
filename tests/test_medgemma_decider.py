@@ -57,9 +57,65 @@ class TestMedGemmaDecider(unittest.TestCase):
             expected.argmax(axis=1)
         )
 
+    def test_independent_l0_calculation(self):
+        self.adapter.prior = np.array(
+            [0.10, 0.10, 0.10, 0.10, 0.50, 0.10]
+        )
+        result = self.adapter.predict([0])
+
+        raw = self.probs[0]
+        weights = raw / self.adapter.prior ** 0.75
+        expected = weights / weights.sum()
+
+        np.testing.assert_allclose(
+            result["l0_probs"][0], expected, rtol=1e-12
+        )
+        self.assertEqual(
+            int(result["l0_predictions"][0]),
+            int(expected.argmax())
+        )
+
+    def test_rejects_invalid_probabilities(self):
+        invalid = [
+            np.array([[0.2, 0.3, 0.5]]),
+            np.array([[0.1, 0.2, -0.1, 0.3, 0.4, 0.1]]),
+            np.array([[np.nan, 0.2, 0.2, 0.2, 0.2, 0.2]]),
+            np.array([[0.1, 0.1, 0.1, 0.1, 0.1, 0.1]]),
+        ]
+        for probabilities in invalid:
+            with self.subTest(probabilities=probabilities):
+                adapter = MedGemmaDecider(
+                    FakeBackend(probabilities),
+                    prompt="Score the clock",
+                )
+                with self.assertRaises(ValueError):
+                    adapter.calibrate([0])
+
+    def test_rejects_invalid_prior_strength(self):
+        for strength in [-1, float("nan"), float("inf")]:
+            with self.subTest(strength=strength):
+                with self.assertRaises(ValueError):
+                    MedGemmaDecider(
+                        FakeBackend(self.probs),
+                        prompt="Score the clock",
+                        prior_strength=strength,
+                    )
+
+    def test_rejects_empty_calibration(self):
+        with self.assertRaisesRegex(ValueError, "empty|nonempty"):
+            self.adapter.calibrate([])
+
     def test_requires_calibration(self):
         with self.assertRaises(RuntimeError):
             self.adapter.predict(range(3))
+
+    def test_rejects_unnormalized_saved_prior(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "bad_prior.npy"
+            np.save(path, np.array([0.2] * 6))
+
+            with self.assertRaises(ValueError):
+                self.adapter.load_prior(path)
 
     def test_save_and_load_prior(self):
         original = self.adapter.calibrate(range(3)).copy()

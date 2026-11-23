@@ -69,13 +69,31 @@ All metrics above use the same 273 matched drawings and corrected labels.
 - The multimodal adapter does not implement every feature of AnyJev's
   original text-based Decider.
 
+## Reproducing the Evaluation
+
+Use `examples/evaluate_medgemma_nhats.py` with authorized NHATS data.
+
+Required arguments:
+- `--model`: local MedGemma model directory
+- `--calibration`: CSV with patient_id and image_path
+- `--evaluation`: CSV with patient_id, image_path, true_score
+- `--output-dir`: private directory for predictions and prior
+
+The reported experiment used 200 patient-disjoint calibration
+drawings, 273 evaluation drawings, Prompt C, and L0 strength 0.75.
+
+The script saves calibration_prior.npy and medgemma_predictions.csv.
+Prediction CSVs contain patient identifiers and must remain private.
+
+Requires compatible NumPy, PyTorch, Transformers, and Pillow packages.
+Use a CUDA-compatible environment for GPU inference.
+
 ## Testing
 
-Run:
+Run: python -m pytest tests/ -q -rs
 
-    python -m pytest tests/ -q
-
-Last verified result: 128 passed, 2 skipped.
+Last full-suite result: 131 passed, 4 skipped.
+A final test run is required after all changes.
 
 ## Data and Privacy
 
@@ -115,3 +133,4 @@ results = decider.predict(evaluation_images)
 
 print("Raw:", results["raw_predictions"])
 print("L0:", results["l0_predictions"])
+```
